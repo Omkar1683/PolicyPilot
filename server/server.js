@@ -66,6 +66,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ── Ensure DB Connection for Requests ─────────────────────────────────────────
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health') return next();
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/api/auth', resolveMiddleware(authRoutes));
 app.use('/api/documents', resolveMiddleware(documentRoutes));

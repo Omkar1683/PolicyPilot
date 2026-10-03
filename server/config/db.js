@@ -1,21 +1,35 @@
 const mongoose = require('mongoose');
 
-let isConnected = false;
+let cachedPromise = null;
 
 const connectDB = async () => {
-  if (isConnected || mongoose.connection.readyState === 1) {
-    return;
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
   }
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    isConnected = true;
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`❌ MongoDB connection error: ${error.message}`);
-    if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-      process.exit(1);
-    }
+
+  if (!process.env.MONGO_URI) {
+    throw new Error('MONGO_URI environment variable is not defined.');
   }
+
+  if (!cachedPromise) {
+    cachedPromise = mongoose
+      .connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 5000,
+      })
+      .then((conn) => {
+        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        return conn;
+      })
+      .catch((err) => {
+        cachedPromise = null;
+        console.error(`❌ MongoDB connection error: ${err.message}`);
+        throw new Error(
+          'Could not connect to MongoDB Atlas. Please ensure 0.0.0.0/0 is whitelisted in MongoDB Atlas Network Access.'
+        );
+      });
+  }
+
+  return cachedPromise;
 };
 
 connectDB.default = connectDB;
