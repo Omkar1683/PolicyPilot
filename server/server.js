@@ -18,8 +18,8 @@ const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
-// ── Connect to MongoDB ────────────────────────────────────────────────────────
-connectDB();
+// ── Initial MongoDB connection attempt (non-blocking) ────────────────────────
+connectDB().catch((err) => console.warn('Initial DB connection in background:', err.message));
 
 // Helper to unwrap router/middleware whether imported via CommonJS, ESM, or bundled by Vercel
 const resolveMiddleware = (mod) => {
