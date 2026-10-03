@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const protect = authMiddleware.protect || authMiddleware.default?.protect || authMiddleware;
 const {
   createSession,
   getSessions,
@@ -17,4 +18,6 @@ router.get('/sessions/:id', getSession);
 router.delete('/sessions/:id', deleteSession);
 router.post('/:sessionId/message', sendMessage);
 
+router.default = router;
 module.exports = router;
+module.exports.default = router;

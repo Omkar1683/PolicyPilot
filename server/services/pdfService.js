@@ -4,7 +4,14 @@
  * Extracts text from a PDF buffer using pdf-parse.
  * Handles both v1 (function) and v2 (PDFParse class).
  */
-const pdfParseModule = require('pdf-parse');
+// Lazy-load pdf-parse so it does not execute during cold starts for non-upload endpoints
+let cachedPdfParse = null;
+function getPdfParser() {
+  if (!cachedPdfParse) {
+    cachedPdfParse = require('pdf-parse');
+  }
+  return cachedPdfParse;
+}
 
 /**
  * Extract text and metadata from a PDF buffer.
@@ -13,6 +20,7 @@ const pdfParseModule = require('pdf-parse');
  */
 async function extractTextFromPDF(buffer) {
   try {
+    const pdfParseModule = getPdfParser();
     let text = '';
     let totalPages = 1;
 

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { protect } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
+const protect = authMiddleware.protect || authMiddleware.default?.protect || authMiddleware;
 const {
   uploadDocument,
   getDocuments,
@@ -32,4 +33,6 @@ router.get('/', getDocuments);
 router.get('/:id', getDocument);
 router.delete('/:id', deleteDocument);
 
+router.default = router;
 module.exports = router;
+module.exports.default = router;

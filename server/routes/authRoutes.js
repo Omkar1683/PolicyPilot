@@ -7,4 +7,6 @@ router.post('/register', register);
 router.post('/login', login);
 router.get('/me', protect, getMe);
 
+router.default = router;
 module.exports = router;
+module.exports.default = router;

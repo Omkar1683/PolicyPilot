@@ -21,10 +21,35 @@ const app = express();
 // ── Connect to MongoDB ────────────────────────────────────────────────────────
 connectDB();
 
+// Helper to unwrap router/middleware whether imported via CommonJS, ESM, or bundled by Vercel
+const resolveMiddleware = (mod) => {
+  if (typeof mod === 'function') return mod;
+  if (mod && typeof mod.default === 'function') return mod.default;
+  if (mod && mod.router && typeof mod.router === 'function') return mod.router;
+  if (mod && mod.default && typeof mod.default.router === 'function') return mod.default.router;
+  return mod;
+};
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL : 'http://localhost:5173',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or serverless rewrites)
+      if (!origin) return callback(null, true);
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        process.env.CLIENT_URL,
+      ].filter(Boolean);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.vercel.app') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
@@ -42,9 +67,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRoutes);
-app.use('/api/documents', documentRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/auth', resolveMiddleware(authRoutes));
+app.use('/api/documents', resolveMiddleware(documentRoutes));
+app.use('/api/chat', resolveMiddleware(chatRoutes));
 
 // ── 404 Handler ───────────────────────────────────────────────────────────────
 app.use((req, res) => {
@@ -52,7 +77,7 @@ app.use((req, res) => {
 });
 
 // ── Global Error Handler ──────────────────────────────────────────────────────
-app.use(errorHandler);
+app.use(resolveMiddleware(errorHandler));
 
 // ── Start / Export Server ──────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
@@ -63,4 +88,6 @@ if (!process.env.VERCEL) {
   });
 }
 
+app.default = app;
 module.exports = app;
+module.exports.default = app;

@@ -36,4 +36,6 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
+errorHandler.default = errorHandler;
 module.exports = errorHandler;
+module.exports.default = errorHandler;
