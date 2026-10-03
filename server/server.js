@@ -54,9 +54,13 @@ app.use((req, res) => {
 // ── Global Error Handler ──────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ── Start Server ──────────────────────────────────────────────────────────────
+// ── Start / Export Server ──────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 PolicyPilot server running on http://localhost:${PORT}`);
-  console.log(`📋 Environment: ${process.env.NODE_ENV}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 PolicyPilot server running on http://localhost:${PORT}`);
+    console.log(`📋 Environment: ${process.env.NODE_ENV}`);
+  });
+}
+
+module.exports = app;
