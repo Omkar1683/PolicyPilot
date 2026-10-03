@@ -42,44 +42,50 @@ const uploadDocument = async (req, res) => {
     status: 'processing',
   });
 
-  // Respond immediately so the client knows upload was received
-  res.status(202).json({
-    success: true,
-    message: 'Document uploaded — processing started',
-    document: {
-      id: doc._id,
-      originalName: doc.originalName,
-      fileSize: doc.fileSize,
-      status: doc.status,
-      createdAt: doc.createdAt,
-    },
-  });
+  try {
+    const { totalChunks, totalPages } = await ingestDocument(
+      buffer,
+      req.user._id,
+      doc._id,
+      originalname
+    );
 
-  // Run ingestion pipeline in the background (don't await in request)
-  setImmediate(async () => {
-    try {
-      const { totalChunks, totalPages } = await ingestDocument(
-        buffer,
-        req.user._id,
-        doc._id,
-        originalname
-      );
-
-      await Document.findByIdAndUpdate(doc._id, {
+    const updatedDoc = await Document.findByIdAndUpdate(
+      doc._id,
+      {
         status: 'ready',
         totalChunks,
         totalPages,
-      });
+      },
+      { new: true }
+    );
 
-      console.log(`✅ Ingested "${originalname}": ${totalChunks} chunks, ${totalPages} pages`);
-    } catch (error) {
-      console.error(`❌ Ingestion failed for "${originalname}":`, error.message);
-      await Document.findByIdAndUpdate(doc._id, {
-        status: 'failed',
-        errorMessage: error.message,
-      });
-    }
-  });
+    console.log(`✅ Ingested "${originalname}": ${totalChunks} chunks, ${totalPages} pages`);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Document uploaded and indexed successfully',
+      document: {
+        id: updatedDoc._id,
+        originalName: updatedDoc.originalName,
+        fileSize: updatedDoc.fileSize,
+        status: updatedDoc.status,
+        totalChunks: updatedDoc.totalChunks,
+        totalPages: updatedDoc.totalPages,
+        createdAt: updatedDoc.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error(`❌ Ingestion failed for "${originalname}":`, error.message);
+    await Document.findByIdAndUpdate(doc._id, {
+      status: 'failed',
+      errorMessage: error.message,
+    });
+    return res.status(500).json({
+      success: false,
+      message: `Document processing failed: ${error.message}`,
+    });
+  }
 };
 
 /**
